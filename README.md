@@ -75,7 +75,7 @@ Attributes that will be translated if the dom element has the data attribute `da
   * label
 
 ### map
-The translations in form of nested objects like
+The translations in form of nested objects like:
 
     'de'
       'simple': 'einfach!'

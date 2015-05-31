@@ -120,7 +120,12 @@
       if (this.isTranslatable(key, language)) {
         key = this.translateSingle(key, language);
       } else if (this.isTranslatable(key, jQuery.language.fallback())) {
-        console.log("!jquery.translation::untranslated '" + key + "' in " + language);
+        jQuery('body').trigger('translate.untranslated', [
+          {
+            key: key,
+            language: language
+          }
+        ]);
         key = this.translateSingle(key, jQuery.language.fallback());
       }
       return this.resolvePlaceholder(key, language);

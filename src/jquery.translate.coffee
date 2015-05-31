@@ -1,35 +1,7 @@
 root = exports ? this
 
-root.translate = do ->
-  $              = jQuery
-  initialized    = false
-  lastUpdateLang = null
-
-  t = (options) ->
-    #add translation
-    if arguments.length == 2
-      t.addTranslation arguments[0], arguments[1]
-      return this
-
-    t.config()
-
-    #no args given -> return t.options
-    return t.options if arguments.length == 0
-
-    #string to jquery element, could be selector or translation key or html
-    if typeof arguments[0] == 'string'
-      arguments[0] = $(t.options.wrapper).html(arguments[0])
-
-    #translate an jquery element
-    if arguments[0].length? > 0
-      return t.translateElementAttributes(t.translateElement(arguments[0]))
-
-    #set configuration
-    t.config arguments[0]
-
-    return t
-
-  t.options =
+class root.JQueryTranslate
+  @options =
     placeholderRegexp: /#{(.*)}/g
     wrapper: '<span/>'
     attributes: [
@@ -42,57 +14,61 @@ root.translate = do ->
     map: 'en':
       'date.year': Math.max(2015, (new Date).getFullYear())
       'language': ->
-        return $.language()
+        return jQuery.language()
     transitDomNodes: ($items2hide, $items2show) ->
       $items2hide.hide()
       $items2show.fadeIn()
 
-  t.config = (options) ->
-    return t.options if !options and initialized
+  constructor: (@options) ->
+    @_lastUpdateLang = null
+    @_initialized    = false
+    @config jQuery.extend(@options, @constructor.options)
 
-    t.options = $.extend(t.options, options)
-    unless initialized
-      initialized = true
-      $(document).ready ->
-        $('body').bind 'language.change', t.update
-        t.update()
+  config: (options) =>
+    return @options if !options and @_initialized
+
+    @options = jQuery.extend(@options, options)
+    unless @_initialized
+      @_initialized = true
+      jQuery(document).ready =>
+        jQuery('body').bind 'language.change', @update
+        @update()
 
     return this
 
-  t.addTranslation = (language, map) ->
-    return this unless $.language.isValid(language)
+  addTranslation: (language, map) =>
+    return this unless jQuery.language.isValid(language)
 
     #reset for next update event
-    lastUpdateLang = null
-    t.options.map[language] = $.extend(t.options.map[language], map)
+    @_lastUpdateLang = null
+    @options.map[language] = jQuery.extend(@options.map[language], map)
 
     return this
 
-  t.translateElement = ($el, language) ->
-    language = language || $.language()
+  translateElement: ($el, language) =>
+    language = language || jQuery.language()
     key      = $el.attr('data-translation-key')
 
     unless key #init element
       key = $el.text()
       $el.attr 'data-translation-key', key
 
-    $el.html t.translate(key, language)
+    $el.html @translate(key, language)
     return $el
 
-  t.translateElementAttributes = ($el, language) ->
-    language = language || $.language()
+  translateElementAttributes: ($el, language) =>
+    language = language || jQuery.language()
     attrs    = $el.attr('data-translation-attributes')
     return $el if attrs == '0'
 
     unless attrs #init element
       attrs = []
       keys = []
-      i = 0
-      while i < t.options.attributes.length
-        if $el.attr(t.options.attributes[i])
-          attrs.push t.options.attributes[i]
-          keys.push $el.attr(t.options.attributes[i])
-        i++
+      for attribute in @options.attributes
+        if $el.attr attribute
+          attrs.push attribute
+          keys.push $el.attr(attribute)
+
       $el.attr 'data-translation-attributes', attrs.join('|')
       $el.attr 'data-translation-keys', keys.join('|')
     else
@@ -103,59 +79,88 @@ root.translate = do ->
       $el.attr 'data-translation-attributes', '0'
       return $el
 
-    i = 0
-    while i < attrs.length
-      $el.attr attrs[i], t.translate(keys[i], language)
-      i++
+    for attribute, index in attrs
+      $el.attr attrs[index], @translate(keys[index], language)
 
     $el
 
-  t.translate = (key, language) ->
-    language = language || $.language()
+  translate: (key, language) =>
+    language = language || jQuery.language()
 
-    return key if !key or !t.options.map[language]
+    return key if !key || !@options.map[language]
 
-    if t.isTranslatable(key, language)
-      key = t.translateSingle(key, language)
+    if @isTranslatable(key, language)
+      key = @translateSingle(key, language)
 
-    else if  t.isTranslatable(key, $.language.fallback())
-      console.log "!jquery.translation::untranslated '#{key}' in #{language}"
-      key = t.translateSingle(key, $.language.fallback())
+    else if @isTranslatable(key, jQuery.language.fallback())
+      jQuery('body').trigger 'translate.untranslated', [{
+        key: key
+        language: language
+      }]
+      key = @translateSingle(key, jQuery.language.fallback())
 
-    return t.resolvePlaceholder(key, language)
+    return @resolvePlaceholder(key, language)
 
-  t.translateSingle = (key, language) ->
-    if $.isFunction(t.options.map[language][key])
-      return  t.options.map[language][key].call(language)
+  translateSingle: (key, language) =>
+    if jQuery.isFunction(@options.map[language][key])
+      return  @options.map[language][key].call(language)
 
-    return t.options.map[language][key]
+    return @options.map[language][key]
 
-  t.isTranslatable = (key, language) ->
-    language = language || $.language()
-    return key && t.options.map[language] && t.options.map[language][key]
+  isTranslatable: (key, language) =>
+    language = language || jQuery.language()
+    return key && @options.map[language] && @options.map[language][key]
 
-  t.resolvePlaceholder = (key, language) ->
-    while match = t.options.placeholderRegexp.exec(key)
-      key = key.replace('#{' + match[1] + '}', t.translate(match[1], language))
+  resolvePlaceholder: (key, language) =>
+    while match = @options.placeholderRegexp.exec(key)
+      key = key.replace('#{' + match[1] + '}', @translate(match[1], language))
     key
 
-  t.update = (searchRoot)->
-    return if lastUpdateLang == $.language() && !searchRoot
+  update: (searchRoot)=>
+    return if @_lastUpdateLang == jQuery.language() && !searchRoot
 
-    # console.log 'jquery.translate::update(' + $.language() + ')'
-    $('[data-translation-node]', searchRoot).each ->
-      #uset.config because it can be fired via event
-      t.options.transitDomNodes $('[data-translation-node-item]', this),
-        $("[data-translation-node-item='#{$.language()}']", this)
+    jQuery('[data-translation-node]', searchRoot).each (index, element) =>
+      #useconfig because it can be fired via event
+      @options.transitDomNodes jQuery('[data-translation-node-item]', element),
+        jQuery("[data-translation-node-item='#{jQuery.language()}']", element)
 
-    $('[data-translation-key],[data-translation-attributes]',
-      searchRoot).each ->
-      t.translateElement $(this), $.language()
-      t.translateElementAttributes $(this), $.language()
+    jQuery('[data-translation-key],[data-translation-attributes]',
+      searchRoot).each (index, element) =>
+      @translateElement jQuery(element), jQuery.language()
+      @translateElementAttributes jQuery(element), jQuery.language()
 
-    lastUpdateLang = $.language()
-
-  return t
+    @_lastUpdateLang = jQuery.language()
 
 if typeof jQuery != 'undefined'
-  jQuery.extend translate: root.translate
+  instance = new JQueryTranslate()
+  $        = jQuery
+
+  $.extend translate: ->
+    #add translation
+    if arguments.length == 2
+      instance.addTranslation arguments[0], arguments[1]
+      return this
+
+    instance.config()
+
+    #no args given -> return options
+    return instance.config() unless arguments.length
+
+    #string to jquery element, could be selector or translation key or html
+    if typeof arguments[0] == 'string'
+      arguments[0] = $(instance.config().wrapper).html(arguments[0])
+
+    #translate an jquery element
+    if arguments[0].length? > 0
+      return instance.translateElementAttributes(
+        instance.translateElement(arguments[0]))
+
+    #set configuration
+    instance.config arguments[0]
+    this
+
+  #for calling instance methods directly
+  $.extend $.translate, instance
+
+  #for test stubbing we need the real instance, the real this
+  $.translate.instance = instance

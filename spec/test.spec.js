@@ -32,20 +32,20 @@
         return expect($.translate.translate('new_key_in_da_house')).toEqual('Neuer Eintrag');
       });
       it('with one string parameter calls translateElement', function() {
-        spyOn($.translate, 'translateElement');
-        spyOn($.translate, 'translateElementAttributes');
+        spyOn($.translate.instance, 'translateElement');
+        spyOn($.translate.instance, 'translateElementAttributes');
         $.translate('simple');
-        expect($.translate.translateElement).toHaveBeenCalled();
-        return expect($.translate.translateElementAttributes).toHaveBeenCalled();
+        expect($.translate.instance.translateElement).toHaveBeenCalled();
+        return expect($.translate.instance.translateElementAttributes).toHaveBeenCalled();
       });
       it('with one jquery selector calls translateElement', function() {
         var selector;
-        spyOn($.translate, 'translateElement');
-        spyOn($.translate, 'translateElementAttributes');
+        spyOn($.translate.instance, 'translateElement');
+        spyOn($.translate.instance, 'translateElementAttributes');
         selector = $('<span>simple</span>');
         $.translate(selector);
-        expect($.translate.translateElement).toHaveBeenCalled();
-        return expect($.translate.translateElementAttributes).toHaveBeenCalled();
+        expect($.translate.instance.translateElement).toHaveBeenCalled();
+        return expect($.translate.instance.translateElementAttributes).toHaveBeenCalled();
       });
       it('with zero parameter return the configuration', function() {
         var config;

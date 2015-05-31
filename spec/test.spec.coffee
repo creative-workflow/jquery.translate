@@ -33,21 +33,21 @@ describe 'jquery.translate', ->
       expect($.translate.translate('new_key_in_da_house')).toEqual 'Neuer Eintrag'
 
     it 'with one string parameter calls translateElement', ->
-      spyOn($.translate, 'translateElement');
-      spyOn($.translate, 'translateElementAttributes');
+      spyOn($.translate.instance, 'translateElement');
+      spyOn($.translate.instance, 'translateElementAttributes');
 
       $.translate('simple')
-      expect($.translate.translateElement).toHaveBeenCalled()
-      expect($.translate.translateElementAttributes).toHaveBeenCalled()
+      expect($.translate.instance.translateElement).toHaveBeenCalled()
+      expect($.translate.instance.translateElementAttributes).toHaveBeenCalled()
 
     it 'with one jquery selector calls translateElement', ->
-      spyOn($.translate, 'translateElement');
-      spyOn($.translate, 'translateElementAttributes');
+      spyOn($.translate.instance, 'translateElement');
+      spyOn($.translate.instance, 'translateElementAttributes');
       selector = $('<span>simple</span>')
 
       $.translate(selector)
-      expect($.translate.translateElement).toHaveBeenCalled()
-      expect($.translate.translateElementAttributes).toHaveBeenCalled()
+      expect($.translate.instance.translateElement).toHaveBeenCalled()
+      expect($.translate.instance.translateElementAttributes).toHaveBeenCalled()
 
     it 'with zero parameter return the configuration', ->
       config = $.translate()
@@ -123,7 +123,7 @@ describe 'jquery.translate', ->
         wrappedResult = $('<div/>').append result
         $('body').append(wrappedResult)
         $.translate.update wrappedResult
-        
+
         expect($('[data-translation-node-item="de"]' ,wrappedResult).
           is(':visible')).toBeTruthy()
         expect($('[data-translation-node-item="en"]' ,wrappedResult).

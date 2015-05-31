@@ -1,32 +1,11 @@
 (function() {
-  var root;
+  var $, instance, root,
+    bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
-  root.translate = (function() {
-    var $, initialized, lastUpdateLang, t;
-    $ = jQuery;
-    initialized = false;
-    lastUpdateLang = null;
-    t = function(options) {
-      if (arguments.length === 2) {
-        t.addTranslation(arguments[0], arguments[1]);
-        return this;
-      }
-      t.config();
-      if (arguments.length === 0) {
-        return t.options;
-      }
-      if (typeof arguments[0] === 'string') {
-        arguments[0] = $(t.options.wrapper).html(arguments[0]);
-      }
-      if ((arguments[0].length != null) > 0) {
-        return t.translateElementAttributes(t.translateElement(arguments[0]));
-      }
-      t.config(arguments[0]);
-      return t;
-    };
-    t.options = {
+  root.JQueryTranslate = (function() {
+    JQueryTranslate.options = {
       placeholderRegexp: /#{(.*)}/g,
       wrapper: '<span/>',
       attributes: ['title', 'alt', 'value', 'placeholder', 'label'],
@@ -34,7 +13,7 @@
         'en': {
           'date.year': Math.max(2015, (new Date).getFullYear()),
           'language': function() {
-            return $.language();
+            return jQuery.language();
           }
         }
       },
@@ -43,42 +22,64 @@
         return $items2show.fadeIn();
       }
     };
-    t.config = function(options) {
-      if (!options && initialized) {
-        return t.options;
+
+    function JQueryTranslate(options1) {
+      this.options = options1;
+      this.update = bind(this.update, this);
+      this.resolvePlaceholder = bind(this.resolvePlaceholder, this);
+      this.isTranslatable = bind(this.isTranslatable, this);
+      this.translateSingle = bind(this.translateSingle, this);
+      this.translate = bind(this.translate, this);
+      this.translateElementAttributes = bind(this.translateElementAttributes, this);
+      this.translateElement = bind(this.translateElement, this);
+      this.addTranslation = bind(this.addTranslation, this);
+      this.config = bind(this.config, this);
+      this._lastUpdateLang = null;
+      this._initialized = false;
+      this.config(jQuery.extend(this.options, this.constructor.options));
+    }
+
+    JQueryTranslate.prototype.config = function(options) {
+      if (!options && this._initialized) {
+        return this.options;
       }
-      t.options = $.extend(t.options, options);
-      if (!initialized) {
-        initialized = true;
-        $(document).ready(function() {
-          $('body').bind('language.change', t.update);
-          return t.update();
-        });
+      this.options = jQuery.extend(this.options, options);
+      if (!this._initialized) {
+        this._initialized = true;
+        jQuery(document).ready((function(_this) {
+          return function() {
+            jQuery('body').bind('language.change', _this.update);
+            return _this.update();
+          };
+        })(this));
       }
       return this;
     };
-    t.addTranslation = function(language, map) {
-      if (!$.language.isValid(language)) {
+
+    JQueryTranslate.prototype.addTranslation = function(language, map) {
+      if (!jQuery.language.isValid(language)) {
         return this;
       }
-      lastUpdateLang = null;
-      t.options.map[language] = $.extend(t.options.map[language], map);
+      this._lastUpdateLang = null;
+      this.options.map[language] = jQuery.extend(this.options.map[language], map);
       return this;
     };
-    t.translateElement = function($el, language) {
+
+    JQueryTranslate.prototype.translateElement = function($el, language) {
       var key;
-      language = language || $.language();
+      language = language || jQuery.language();
       key = $el.attr('data-translation-key');
       if (!key) {
         key = $el.text();
         $el.attr('data-translation-key', key);
       }
-      $el.html(t.translate(key, language));
+      $el.html(this.translate(key, language));
       return $el;
     };
-    t.translateElementAttributes = function($el, language) {
-      var attrs, i, keys;
-      language = language || $.language();
+
+    JQueryTranslate.prototype.translateElementAttributes = function($el, language) {
+      var attribute, attrs, i, index, j, keys, len, len1, ref;
+      language = language || jQuery.language();
       attrs = $el.attr('data-translation-attributes');
       if (attrs === '0') {
         return $el;
@@ -86,13 +87,13 @@
       if (!attrs) {
         attrs = [];
         keys = [];
-        i = 0;
-        while (i < t.options.attributes.length) {
-          if ($el.attr(t.options.attributes[i])) {
-            attrs.push(t.options.attributes[i]);
-            keys.push($el.attr(t.options.attributes[i]));
+        ref = this.options.attributes;
+        for (i = 0, len = ref.length; i < len; i++) {
+          attribute = ref[i];
+          if ($el.attr(attribute)) {
+            attrs.push(attribute);
+            keys.push($el.attr(attribute));
           }
-          i++;
         }
         $el.attr('data-translation-attributes', attrs.join('|'));
         $el.attr('data-translation-keys', keys.join('|'));
@@ -104,63 +105,94 @@
         $el.attr('data-translation-attributes', '0');
         return $el;
       }
-      i = 0;
-      while (i < attrs.length) {
-        $el.attr(attrs[i], t.translate(keys[i], language));
-        i++;
+      for (index = j = 0, len1 = attrs.length; j < len1; index = ++j) {
+        attribute = attrs[index];
+        $el.attr(attrs[index], this.translate(keys[index], language));
       }
       return $el;
     };
-    t.translate = function(key, language) {
-      language = language || $.language();
-      if (!key || !t.options.map[language]) {
+
+    JQueryTranslate.prototype.translate = function(key, language) {
+      language = language || jQuery.language();
+      if (!key || !this.options.map[language]) {
         return key;
       }
-      if (t.isTranslatable(key, language)) {
-        key = t.translateSingle(key, language);
-      } else if (t.isTranslatable(key, $.language.fallback())) {
+      if (this.isTranslatable(key, language)) {
+        key = this.translateSingle(key, language);
+      } else if (this.isTranslatable(key, jQuery.language.fallback())) {
         console.log("!jquery.translation::untranslated '" + key + "' in " + language);
-        key = t.translateSingle(key, $.language.fallback());
+        key = this.translateSingle(key, jQuery.language.fallback());
       }
-      return t.resolvePlaceholder(key, language);
+      return this.resolvePlaceholder(key, language);
     };
-    t.translateSingle = function(key, language) {
-      if ($.isFunction(t.options.map[language][key])) {
-        return t.options.map[language][key].call(language);
+
+    JQueryTranslate.prototype.translateSingle = function(key, language) {
+      if (jQuery.isFunction(this.options.map[language][key])) {
+        return this.options.map[language][key].call(language);
       }
-      return t.options.map[language][key];
+      return this.options.map[language][key];
     };
-    t.isTranslatable = function(key, language) {
-      language = language || $.language();
-      return key && t.options.map[language] && t.options.map[language][key];
+
+    JQueryTranslate.prototype.isTranslatable = function(key, language) {
+      language = language || jQuery.language();
+      return key && this.options.map[language] && this.options.map[language][key];
     };
-    t.resolvePlaceholder = function(key, language) {
+
+    JQueryTranslate.prototype.resolvePlaceholder = function(key, language) {
       var match;
-      while (match = t.options.placeholderRegexp.exec(key)) {
-        key = key.replace('#{' + match[1] + '}', t.translate(match[1], language));
+      while (match = this.options.placeholderRegexp.exec(key)) {
+        key = key.replace('#{' + match[1] + '}', this.translate(match[1], language));
       }
       return key;
     };
-    t.update = function(searchRoot) {
-      if (lastUpdateLang === $.language() && !searchRoot) {
+
+    JQueryTranslate.prototype.update = function(searchRoot) {
+      if (this._lastUpdateLang === jQuery.language() && !searchRoot) {
         return;
       }
-      $('[data-translation-node]', searchRoot).each(function() {
-        return t.options.transitDomNodes($('[data-translation-node-item]', this), $("[data-translation-node-item='" + ($.language()) + "']", this));
-      });
-      $('[data-translation-key],[data-translation-attributes]', searchRoot).each(function() {
-        t.translateElement($(this), $.language());
-        return t.translateElementAttributes($(this), $.language());
-      });
-      return lastUpdateLang = $.language();
+      jQuery('[data-translation-node]', searchRoot).each((function(_this) {
+        return function(index, element) {
+          return _this.options.transitDomNodes(jQuery('[data-translation-node-item]', element), jQuery("[data-translation-node-item='" + (jQuery.language()) + "']", element));
+        };
+      })(this));
+      jQuery('[data-translation-key],[data-translation-attributes]', searchRoot).each((function(_this) {
+        return function(index, element) {
+          _this.translateElement(jQuery(element), jQuery.language());
+          return _this.translateElementAttributes(jQuery(element), jQuery.language());
+        };
+      })(this));
+      return this._lastUpdateLang = jQuery.language();
     };
-    return t;
+
+    return JQueryTranslate;
+
   })();
 
   if (typeof jQuery !== 'undefined') {
-    jQuery.extend({
-      translate: root.translate
+    instance = new JQueryTranslate();
+    $ = jQuery;
+    $.extend({
+      translate: function() {
+        if (arguments.length === 2) {
+          instance.addTranslation(arguments[0], arguments[1]);
+          return this;
+        }
+        instance.config();
+        if (!arguments.length) {
+          return instance.config();
+        }
+        if (typeof arguments[0] === 'string') {
+          arguments[0] = $(instance.config().wrapper).html(arguments[0]);
+        }
+        if ((arguments[0].length != null) > 0) {
+          return instance.translateElementAttributes(instance.translateElement(arguments[0]));
+        }
+        instance.config(arguments[0]);
+        return this;
+      }
     });
+    $.extend($.translate, instance);
+    $.translate.instance = instance;
   }
 
 }).call(this);

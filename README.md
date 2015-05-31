@@ -6,6 +6,8 @@ This plugin helps managing translations. Works also instant without reloading th
 ### javascript
 Use a coffe 2 jscompiler, for ex. [http://js2.coffee](http://js2.coffee).
 
+It also exposes the class `JQueryTranslate` for manual instantiating.
+
 ### coffee script
     #configuration
     $.translate
@@ -39,6 +41,8 @@ Use a coffe 2 jscompiler, for ex. [http://js2.coffee](http://js2.coffee).
 
     #translate raw string in other language
     $.translate.translate('email', 'en')
+
+It also exposes the class `JQueryTranslate` for manual instantiating and extending.
 
 ### Parameter
 #### placeholderRegexp

@@ -31,7 +31,7 @@ module.exports = (grunt) ->
           specs: 'spec/*spec.js'
           vendor: [
             "bower_components/jquery/dist/jquery.min.js"
-            "bower_components/jquery.cookie/jquery.cookie.js"
+            "bower_components/js-cookie/src/js.cookie.js"
             "bower_components/js-url/url.min.js"
             "bower_components/jquery.language/dist/jquery.language.js"
             "bower_components/jasmine-jquery/lib/jasmine-jquery.js"

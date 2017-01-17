@@ -101,7 +101,7 @@ Calls `$.translate.config`.
 Calls `$.translate.addTranslation`.
 
 #### $.translate(key|jqueryObject)
-Calls `$.translate.translateElement`. if a playin key is given, the key will be wrapped by `config.wrapper`.
+Calls `$.translate.translateElement`. if a string key is given, the key will be wrapped by `config.wrapper`.
 
 #### $.translate.config(options)
 Update the configuration.
